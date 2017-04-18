@@ -16,7 +16,7 @@ class Player(object):
 
     def hit(self, card):
         '''
-        :param card: Car a player get when hit
+        :param card: Card a player get when hit
         :return: True - Not busted. False: this player goes busted.
         '''
 
@@ -82,7 +82,7 @@ class Game(object):
 
         if self.verbose:
             print('  Init:')
-            print('    Faceup: %d, Dealer: %d, Player: %d' % (self.faceup, self.dealer.sum, self.player.sum))
+            print('    Faceup: %d, %s' % (self.faceup, self._str_players_status()))
 
     def play(self):
         # when player has a natural:
@@ -93,24 +93,28 @@ class Game(object):
                 print('  Player has a natural. Reward: %d.' % reward)
             return reward
 
-        while not self.player.if_stick():
-            self.player.hit(self.draw())
-
         if self.verbose:
             print("  Player's Round:")
-            print('    Dealer: %d, Player: %d' % (self.dealer.sum, self.player.sum))
+
+        while not self.player.if_stick():
+            _draw = self.draw()
+            self.player.hit(_draw)
+            if self.verbose:
+                print("    " + "Draw %d, " % _draw + self._str_players_status())
 
         if self.player.if_busted():
             if self.verbose:
                 print('Game Over. Player is lost. He is busted')
             return -1
 
-        while not self.dealer.if_stick():
-            self.dealer.hit(self.draw())
-
         if self.verbose:
             print("  Dealer's Round:")
-            print('    Dealer: %d, Player: %d' % (self.dealer.sum, self.player.sum))
+
+        while not self.dealer.if_stick():
+            _draw = self.draw()
+            self.dealer.hit(_draw)
+            if self.verbose:
+                print("    " + "Draw %d, " % _draw + self._str_players_status())
 
         if self.dealer.if_busted():
             if self.verbose:
@@ -131,6 +135,11 @@ class Game(object):
             print('Game Over. Dealer wins.')
 
         return -1
+
+    def _str_players_status(self):
+        da = "(A)" if self.dealer.usable_ace else ""
+        pa = "(A)" if self.player.usable_ace else ""
+        return "Dealer: %d%s, Player: %d%s" % (self.dealer.sum, da, self.player.sum, pa)
 
 
 if __name__ == '__main__':

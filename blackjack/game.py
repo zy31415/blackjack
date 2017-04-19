@@ -60,6 +60,7 @@ class Game(object):
 
         self.player = None
 
+        self.player_history = None
         self.verbose = True
 
     @staticmethod
@@ -69,6 +70,9 @@ class Game(object):
     def init(self):
         if self.verbose:
             print('Game start.')
+
+        self.player_history = []
+
         self.dealer = Dealer()
         self.player = Player()
 
@@ -79,6 +83,8 @@ class Game(object):
 
         self.player.hit(self.draw())
         self.player.hit(self.draw())
+
+        self._record_player_history()
 
         if self.verbose:
             print('  Init:')
@@ -99,6 +105,7 @@ class Game(object):
         while not self.player.if_stick():
             _draw = self.draw()
             self.player.hit(_draw)
+            self._record_player_history()
             if self.verbose:
                 print("    " + "Draw %d, " % _draw + self._str_players_status())
 
@@ -141,11 +148,15 @@ class Game(object):
         pa = "(A)" if self.player.usable_ace else ""
         return "Dealer: %d%s, Player: %d%s" % (self.dealer.sum, da, self.player.sum, pa)
 
+    def _record_player_history(self):
+        self.player_history.append((self.player.usable_ace, self.player.sum))
+
 
 if __name__ == '__main__':
     game = Game()
     game.init()
     print(game.play())
+    print(game.player_history)
 
 
 

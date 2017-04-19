@@ -2,10 +2,11 @@ import random
 
 
 class Player(object):
-    def __init__(self):
+    def __init__(self, faceup=None):
         self.sum = 0
         self.usable_ace = False
         self._if_stick = False
+        self.faceup = faceup
 
     def if_stick(self):
         if not self._if_stick:
@@ -54,18 +55,21 @@ class Dealer(Player):
 
 
 class Game(object):
-    def __init__(self):
+    def __init__(self, player_class = Player, player_class_kwargs = {}):
         self.dealer = None
         self.faceup = None
 
         self.player = None
+        self.player_class = player_class
+        self.player_class_kwargs = player_class_kwargs
 
         self.player_history = None
         self.verbose = True
 
     @staticmethod
     def draw():
-        return random.randint(1, 10)
+        card = random.randint(1, 13)
+        return card if card < 10 else 10
 
     def init(self):
         if self.verbose:
@@ -74,13 +78,13 @@ class Game(object):
         self.player_history = []
 
         self.dealer = Dealer()
-        self.player = Player()
 
         self.faceup = self.draw()
 
         self.dealer.hit(self.faceup)
         self.dealer.hit(self.draw())
 
+        self.player = self.player_class(faceup=self.faceup, **self.player_class_kwargs)
         self.player.hit(self.draw())
         self.player.hit(self.draw())
 

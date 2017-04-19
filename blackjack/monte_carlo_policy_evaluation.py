@@ -9,8 +9,7 @@ class MonteCarloPolicyEvaluation(object):
         self.game = Game()
         self.game.verbose = False
 
-        self.values = np.empty((2, 10, 10))
-        self.values.fill(np.nan)
+        self.values = np.full((2, 10, 10), np.nan, float)
 
         self.counts = np.zeros((2, 10, 10), int)
 

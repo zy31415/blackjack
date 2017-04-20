@@ -1,70 +1,16 @@
 import random
-
-
-class Player(object):
-    def __init__(self, faceup=None):
-        self.sum = 0
-        self.usable_ace = False
-        self._if_stick = False
-        self.faceup = faceup
-
-    def if_stick(self):
-        if not self._if_stick:
-            # get the action: whether to stick or not
-            self._if_stick = self.stick_strategy()
-
-        return self._if_stick
-
-    def hit(self, card):
-        '''
-        :param card: Card a player get when hit
-        :return: True - Not busted. False: this player goes busted.
-        '''
-
-        # When sum <= 10, treat card 1 as 11 and set usable_ace to True
-        if card == 1 and self.sum <= 10:
-            self.sum += 11
-            self.usable_ace = True
-        else:
-            self.sum += card
-
-        # If sum is greater than 21, then check if the sum contains a usable ace. If Yes, count that usable ace as 1.
-        if self.sum > 21 and self.usable_ace:
-            self.sum -= 10
-            self.usable_ace = False
-
-        return self.sum <= 21
-
-    def stick_strategy(self):
-        '''
-        Make the decision whether to stick (return True) or not (return False)
-        :return: bool 
-        '''
-        return self.sum >= 20
-
-    def if_busted(self):
-        return self.sum > 21
-
-
-class Dealer(Player):
-    def __init__(self):
-        super().__init__()
-
-    def stick_strategy(self):
-        return self.sum >= 17
+from .player import Player, Dealer
 
 
 class Game(object):
-    def __init__(self, player_class = Player, player_class_kwargs = {}):
+    def __init__(self, player=None):
         self.dealer = None
-        self.faceup = None
 
-        self.player = None
-        self.player_class = player_class
-        self.player_class_kwargs = player_class_kwargs
+        self.player = Player() if player is None else player
+        self.dealer = Dealer()
 
-        self.player_history = None
         self.verbose = True
+        self.faceup = None
 
     @staticmethod
     def draw():
@@ -75,26 +21,24 @@ class Game(object):
         if self.verbose:
             print('Game start.')
 
-        self.player_history = []
+        faceup = self.draw()
 
-        self.dealer = Dealer()
-
-        self.faceup = self.draw()
-
-        self.dealer.hit(self.faceup)
-        self.dealer.hit(self.draw())
-
-        self.player = self.player_class(faceup=self.faceup, **self.player_class_kwargs)
-        self.player.hit(self.draw())
-        self.player.hit(self.draw())
-
-        self._record_player_history()
+        self.dealer.init(faceup=faceup, card1=faceup, card2=self.draw())
+        self.player.init(faceup=faceup, card1=self.draw(), card2=self.draw())
 
         if self.verbose:
             print('  Init:')
-            print('    Faceup: %d, %s' % (self.faceup, self._str_players_status()))
+            print('    Faceup: %d, %s' % (faceup, self._str_players_status()))
+
+        self.faceup = faceup
 
     def play(self):
+        reward = self._play()
+        self.player.finish(reward)
+        self.dealer.finish(reward)
+        return reward
+
+    def _play(self):
         # when player has a natural:
         if self.player.sum == 21:
             reward = 0 if self.dealer.sum == 21 else 1
@@ -106,12 +50,15 @@ class Game(object):
         if self.verbose:
             print("  Player's Round:")
 
-        while not self.player.if_stick():
-            _draw = self.draw()
-            self.player.hit(_draw)
-            self._record_player_history()
-            if self.verbose:
-                print("    " + "Draw %d, " % _draw + self._str_players_status())
+        while True:
+            if self.player.if_hit():
+                _draw = self.draw()
+                self.player.hit(_draw)
+                if self.verbose:
+                    print("    " + "Draw %d, " % _draw + self._str_players_status())
+            else:
+                self.player.stick()
+                break
 
         if self.player.if_busted():
             if self.verbose:
@@ -121,11 +68,15 @@ class Game(object):
         if self.verbose:
             print("  Dealer's Round:")
 
-        while not self.dealer.if_stick():
-            _draw = self.draw()
-            self.dealer.hit(_draw)
-            if self.verbose:
-                print("    " + "Draw %d, " % _draw + self._str_players_status())
+        while True:
+            if self.dealer.if_hit():
+                _draw = self.draw()
+                self.dealer.hit(_draw)
+                if self.verbose:
+                    print("    " + "Draw %d, " % _draw + self._str_players_status())
+            else:
+                self.dealer.stick()
+                break
 
         if self.dealer.if_busted():
             if self.verbose:
@@ -151,17 +102,4 @@ class Game(object):
         da = "(A)" if self.dealer.usable_ace else ""
         pa = "(A)" if self.player.usable_ace else ""
         return "Dealer: %d%s, Player: %d%s" % (self.dealer.sum, da, self.player.sum, pa)
-
-    def _record_player_history(self):
-        self.player_history.append((self.player.usable_ace, self.player.sum))
-
-
-if __name__ == '__main__':
-    game = Game()
-    game.init()
-    print(game.play())
-    print(game.player_history)
-
-
-
 
